@@ -1,3 +1,5 @@
+# Use Langchain to interface with Bedrock
+
 from langchain.chat_models import BedrockChat
 from langchain.schema import HumanMessage
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
