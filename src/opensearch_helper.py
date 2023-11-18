@@ -1,6 +1,8 @@
 import boto3
+import botocore
 import json
-from opensearchpy import OpenSearch
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
 
 
 class OpenSearchHelper:
@@ -11,18 +13,26 @@ class OpenSearchHelper:
 
 	MINUTES_TO_RETRIEVE = 15
 	MAX_DOCUMENTS_TO_RETRIEVE = 1000
+	#service = 'aoss'
+	#region = 'us-west-2'
+	#credentials = boto3.Session().get_credentials()
+	#awsauth = AWS4Auth(credentials.access_key, credentials.secret_key,
+	 #                  region, service, session_token=credentials.token)
+	
 
 	def __init__ (self, host, user, password, port = None):
 		self.host = host
 		self.user = user
 		self.password = password
 		self.port = 443 if not port else port
+		
 		self.client= OpenSearch(
 			hosts=[{"host": self.host, "port": self.port}],
 			http_auth=(user, password),
 			use_ssl=True,
 			verify_certs=True,
-			connection_class=None,
+			connection_class=RequestsHttpConnection,
+			timeout=300
 		)
 
 	# Retrieve last nn minutes of documents from the specified OpenSearch index
@@ -49,7 +59,7 @@ class OpenSearchHelper:
 				}
 			}]
 		}
-		response = self.client.search(index=index, body=query, size = maxDocs)
+		response = self.client.search(index=index, body=query, size=maxDocs)
 		return response["hits"]["hits"]
 
 	# Retrieve last nn minutes of documents from OpenSearch index containing
@@ -90,9 +100,9 @@ class OpenSearchHelper:
 		index = index if index else self.EVENTS_INDEX_NAME
 		# Retrieve docs from OpenSearch
 		documents = self.get_documents(index=index, 
-																   timestampField="lastTimestamp",
-																 	 minutes=minutes, 
-																	 maxDocs=maxDocs)
+									   timestampField="lastTimestamp",
+									 	 minutes=minutes, 
+										 maxDocs=maxDocs)
 		events = []
 		for doc in documents:
 			event = {}
@@ -116,9 +126,9 @@ class OpenSearchHelper:
 		if not index:
 			index = self.POD_LOGS_INDEX_NAME
 		documents = self.get_documents(index=index, 
-																   timestampField="@timestamp",
-																 	 minutes=minutes, 
-																	 maxDocs=maxDocs)
+									   timestampField="@timestamp",
+									 	 minutes=minutes, 
+										 maxDocs=maxDocs)
 		logs = []
 		for doc in documents:
 			log_entry = {}
